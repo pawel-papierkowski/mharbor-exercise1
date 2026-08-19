@@ -15,10 +15,16 @@ import org.springframework.stereotype.Service;
 public class JourneyCostService {
   /** Maximum distance where discount do not apply. */
   private static final float NODISCOUNT_DISTANCE = 100f;
-  /** Rate of discount. */
+  /** Rate of distance discount. */
   private static final float DISCOUNT_RATE = 0.1f;
   /** Price multiplier. */
   private static final float PRICE_MUL = 1f - DISCOUNT_RATE;
+
+  /** Name of customer eligible for customer discount: TransX. */
+  private static final String CUSTOMER_DISCOUNT_NAME = "TransX";
+  /** Rate of customer discount. */
+  private static final float CUSTOMER_DISCOUNT_RATE = 0.05f;
+
 
   /**
    * Calculate price of journey.
@@ -26,28 +32,41 @@ public class JourneyCostService {
    * @return Final price of journey.
    */
   public JourneyCostResp calculate(JourneyCostReq journeyCostReq) {
-    float price = calcPrice(journeyCostReq);
+    float price = calcPriceWithDistanceDiscount(journeyCostReq);
+    price = calcPriceWithCustomerDiscount(price, journeyCostReq);
     return JourneyCostResp.builder()
-        .price(price)
+        .price(PriceHelper.round(price))
         .build();
   }
 
   /**
-   * Calculates price of journey. Takes discount in account.
+   * Calculates price of journey. Takes distance discount in account.
    * @param journeyCostReq Data needed to determine the price.
-   * @return Final price of journey.
+   * @return Price of journey with distance discount.
    */
-  private float calcPrice(JourneyCostReq journeyCostReq) {
-    float finalPrice;
-    if (journeyCostReq.distance() <= NODISCOUNT_DISTANCE) finalPrice = journeyCostReq.distance() * journeyCostReq.cost();
+  private float calcPriceWithDistanceDiscount(JourneyCostReq journeyCostReq) {
+    float price;
+    if (journeyCostReq.distance() <= NODISCOUNT_DISTANCE) price = journeyCostReq.distance() * journeyCostReq.cost();
     else {
       float noDiscountPrice = NODISCOUNT_DISTANCE * journeyCostReq.cost();
       float discountedDistance = journeyCostReq.distance() - NODISCOUNT_DISTANCE;
       float discountedPrice = discountedDistance * journeyCostReq.cost() * PRICE_MUL;
-      finalPrice = noDiscountPrice + discountedPrice;
+      price = noDiscountPrice + discountedPrice;
     }
+    return price;
+  }
 
-    // Handles floating point precision issues. This is currency value, so cent-precision is correct.
-    return Math.round(finalPrice * 100f) / 100f;
+  /**
+   * Calculate new price taking customer discount in account, if any.
+   * Note: customer name is case-sensitive.
+   * @param price Base price with distance discount already applied.
+   * @param journeyCostReq Data needed to determine the price.
+   * @return Price of journey with customer discount, if any.
+   */
+  private float calcPriceWithCustomerDiscount(float price, JourneyCostReq journeyCostReq) {
+    if (CUSTOMER_DISCOUNT_NAME.equals(journeyCostReq.customer())) {
+      price = price * (1 - CUSTOMER_DISCOUNT_RATE);
+    }
+    return price;
   }
 }

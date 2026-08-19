@@ -6,8 +6,9 @@ import lombok.Builder;
 
 /**
  * Journey cost calculation request.
- * @param distance Distance in kilometers.
+ * @param distance Distance in kilometres.
  * @param cost Cost per kilometre in euro.
+ * @param customer Customer name. Can be null.
  */
 @Builder(toBuilder = true)
 public record JourneyCostReq(
@@ -16,5 +17,6 @@ public record JourneyCostReq(
     Float distance,
     @PositiveOrZero
     @NotNull
-    Float cost
+    Float cost,
+    String customer
 ) {}

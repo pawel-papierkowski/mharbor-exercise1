@@ -51,7 +51,7 @@ public class JourneyCostApiTests {
     // Test for example given in task description.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(200f, 0.25f);
+    JourneyCostReq req = new JourneyCostReq(200f, 0.25f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -70,7 +70,7 @@ public class JourneyCostApiTests {
     // Calculate price of journey for free journey.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(125f, 0.0f);
+    JourneyCostReq req = new JourneyCostReq(125f, 0.0f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -86,11 +86,11 @@ public class JourneyCostApiTests {
 
   @Test
   public void noDiscount() throws Exception {
-    // Calculate price of journey for distance where discount does not apply (significantly below boundary).
+    // Calculate price of journey for distance where discount does NOT apply (significantly below boundary).
     // Note it also verifies rounding (without it resulting price would be 7.5000005).
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(50f, 0.15f);
+    JourneyCostReq req = new JourneyCostReq(50f, 0.15f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -109,7 +109,7 @@ public class JourneyCostApiTests {
     // Test for distance boundary - exactly 100 km.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(100f, 0.33f);
+    JourneyCostReq req = new JourneyCostReq(100f, 0.33f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -128,7 +128,7 @@ public class JourneyCostApiTests {
     // Test for distance boundary - just over 100 km.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(101f, 0.20f);
+    JourneyCostReq req = new JourneyCostReq(101f, 0.20f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -143,11 +143,11 @@ public class JourneyCostApiTests {
   }
 
   @Test
-  public void withDiscount() throws Exception {
+  public void withDistanceDiscount() throws Exception {
     // Calculate price of journey for distance where discount does apply (significantly above boundary).
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(300f, 1.0f);
+    JourneyCostReq req = new JourneyCostReq(300f, 1.0f, "RedGoFast");
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -161,6 +161,44 @@ public class JourneyCostApiTests {
     assertThat(actualResp).isEqualTo(expectedResp);
   }
 
+  @Test
+  public void withCustomerDiscount() throws Exception {
+    // Calculate price of journey for distance where discount does NOT apply and with customer discount.
+
+    // Arrange: Prepare data.
+    JourneyCostReq req = new JourneyCostReq(100f, 1.0f, "TransX");
+
+    // Act: Call endpoint.
+    MockHttpServletResponse response = callApi(req);
+
+    // Assert: Call was successful.
+    assertThat(response.getStatus()).as("HTTP status is wrong").isEqualTo(HttpStatus.OK.value());
+
+    // Assert: Expected result is returned.
+    JourneyCostResp actualResp = objectMapper.readValue(response.getContentAsString(), JourneyCostResp.class);
+    JourneyCostResp expectedResp = new JourneyCostResp(95.0f); // 0.05 of 100 is 5
+    assertThat(actualResp).isEqualTo(expectedResp);
+  }
+
+  @Test
+  public void withBothDiscounts() throws Exception {
+    // Calculate price of journey for distance where discount does apply and with customer discount.
+
+    // Arrange: Prepare data.
+    JourneyCostReq req = new JourneyCostReq(300f, 1.0f, "TransX");
+
+    // Act: Call endpoint.
+    MockHttpServletResponse response = callApi(req);
+
+    // Assert: Call was successful.
+    assertThat(response.getStatus()).as("HTTP status is wrong").isEqualTo(HttpStatus.OK.value());
+
+    // Assert: Expected result is returned.
+    JourneyCostResp actualResp = objectMapper.readValue(response.getContentAsString(), JourneyCostResp.class);
+    JourneyCostResp expectedResp = new JourneyCostResp(266.0f); // 0.05 of 280 is 14
+    assertThat(actualResp).isEqualTo(expectedResp);
+  }
+
   //
 
   @Test
@@ -168,7 +206,7 @@ public class JourneyCostApiTests {
     // Ensures endpoint rejects invalid distance in request.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(-10f, 0.20f);
+    JourneyCostReq req = new JourneyCostReq(-10f, 0.20f, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
@@ -182,7 +220,7 @@ public class JourneyCostApiTests {
     // Ensures endpoint rejects invalid cost in request.
 
     // Arrange: Prepare data.
-    JourneyCostReq req = new JourneyCostReq(10f, null);
+    JourneyCostReq req = new JourneyCostReq(10f, null, null);
 
     // Act: Call endpoint.
     MockHttpServletResponse response = callApi(req);
